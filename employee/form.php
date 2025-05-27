@@ -12,10 +12,10 @@
 	<div class="center">
 		<h1>Employee Data Entry Software</h1>
 		<div class="form">
-			<input type="text" class="textfield" placeholder="Search ID">
-			<input type="text" class="textfield" placeholder="Employee name">
+			<input type="text" class="textfield" placeholder=" Search ID">
+			<input type="text" class="textfield" placeholder=" Employee name">
 
-			<select>
+			<select class="textfield">
 				<option>Select department</option>
 				<option>Executive</option>
 				<option>Human Resources</option>
@@ -27,16 +27,16 @@
 				<option>Customer Support</option>
 			</select>
 
-			<input type="text" class="textfield" placeholder="Email address">
+			<input type="text" class="textfield" placeholder=" Email address">
 
-			<select>
+			<select class="textfield">
 				<option>Gender</option>
 				<option>Male</option>
 				<option>Female</option>
 				<option>Other</option>
 			</select>
 			
-			<textarea placeholder = "Address"></textarea>
+			<textarea placeholder="Address"></textarea>
 
 			<input type = "submit" value="Search" name="" class="btn">
 		</div>
