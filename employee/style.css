@@ -1,0 +1,39 @@
+body 
+{
+	margin: 0;
+	padding: 0;
+	background-color: royalblue; 
+	/* setup background color, will need to clear history to update changes */
+}
+
+.center
+{
+	/* snippet of code for centering the input form */
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	/*setup for form to fit inside a box*/
+	width: 650px;
+	background-color: white;
+	border-radius: 5px;
+}
+
+.center h1
+{
+	text-align: center;
+	padding-bottom: 20px;
+	border-bottom: 2px solid silver;
+}
+
+.form 
+{
+	padding-bottom: 15px;
+	margin: 0 20px; /* change the alignment of left and right */
+}
+
+.textfield
+{
+	width: 100%; /*set for the text to cover the whole line of the form table */
+}
