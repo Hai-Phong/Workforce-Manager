@@ -2,7 +2,7 @@ body
 {
 	margin: 0;
 	padding: 0;
-	background-color: royalblue; 
+	background-color: darkcyan; 
 	/* setup background color, will need to clear history to update changes */
 }
 
@@ -30,10 +30,23 @@ body
 .form 
 {
 	padding-bottom: 15px;
-	margin: 0 20px; /* change the alignment of left and right */
+	margin: 0 20px; /* change the alignment of bottom + left and right */
 }
 
-.textfield
+.textfield, textarea
 {
 	width: 100%; /*set for the text to cover the whole line of the form table */
+	height: 40px;
+	font-size: 18px;
+	border: 2px solid darkslateblue;
+	border-radius: 5px;
+	box-sizing: border-box;
+	padding-left: 10px; /*alignment of the text inside textfield*/
+	margin: 7px 0; /*gap between textfield boxes, no 0 aligns the dropbox as well*/
+}
+
+/*additional seting for address textbox*/
+textarea
+{
+	height: 80px;
 }
