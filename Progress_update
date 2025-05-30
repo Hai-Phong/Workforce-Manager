@@ -1,2 +1,5 @@
 27/5: UI design for searching employee complete
 30/5: complete UI design for pushing data into the database through form
+30/5_update2: 
+- after prompting deepseek to fix the code, register page now have a new design & DOB section with dropdown calendar
+- complete homescreen (after login), the stats are still static tho, need to implement pulling data from the database              
