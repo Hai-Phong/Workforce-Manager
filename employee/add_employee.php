@@ -15,7 +15,7 @@
         <div class="form-container">
             <form action="#" method="POST">
                 <label for="id">Employee ID</label>
-                <input type="text" name="id" class="textfield" placeholder="ID" required>
+                <input type="text" name="id" class="textfield" placeholder="ID will be automatically updated" readonly>
                 
                 <label for="name">Full Name</label>
                 <input type="text" name="name" class="textfield" placeholder="Employee Name" required>
@@ -63,3 +63,7 @@
     </div>
 </body>
 </html>
+
+<?php
+    if(isset($_POST['searchdata']))
+?>
