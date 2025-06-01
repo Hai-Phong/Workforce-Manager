@@ -3,3 +3,4 @@
 30/5_update2: 
 - after prompting deepseek to fix the code, register page now have a new design & DOB section with dropdown calendar
 - complete homescreen (after login), the stats are still static tho, need to implement pulling data from the database              
+1/6: open a new branch in_dev_mode with codes for admin_login, employee_login
