@@ -1,0 +1,14 @@
+Run instructions:
+1, download xampp and setup, link: https://www.apachefriends.org/
+2, put the "employee" file into "../xampp/htdocs/"
+3, run xampp control panel as administrator, download apache and mysql service (make sure there is tick mark on the left side of Apache & mysql)
+4, start both modules, take note of the port use for apache (for example:80) 
+	--> on the webpage type: localhost:"port number"/employee 
+	--> you should see the list of files for the webpage
+5, webpage flow: admin_login.php -> starting.php -> add_employee.php (when click on the register employee button)
+		on the add_employee.php page, either click "save" after complete textboxes, (no complete saving to database notification yet)
+										or	 click "back/cancel" to get out of the page and back to starting.php page
+										
+6, on xampp control panel, click "admin" on mysql module, it will take you to a webpage with detail info about the database
+	next to phpMyAdmin title, check the server info on the right, if it's something else other than 127.0.0.1, then copy your server info and paste it into connection.php
+7, import the database from the sql textfile to phpMyAdmin page

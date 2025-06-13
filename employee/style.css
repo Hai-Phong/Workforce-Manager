@@ -224,3 +224,55 @@ label {
         text-align: center;
     }
 }
+
+/* Login Page Specific Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.login-footer {
+    margin-top: 30px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.login-footer a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Security Notice for Admin Login */
+.security-notice {
+    background-color: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+/* Form Container Adjustments */
+.form-container {
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Responsive Adjustments for Login */
+@media (max-width: 600px) {
+    .form-container {
+        padding: 20px 15px;
+    }
+}
+
+.error-message {
+            color: #e74c3c;
+            background-color: #fde8e8;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            text-align: center;
+        }

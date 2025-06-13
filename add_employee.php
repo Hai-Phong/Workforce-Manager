@@ -1,3 +1,26 @@
+<?php
+include 'connection.php';
+
+if (isset($_POST['save'])) {
+    // Collect and sanitize form data
+    $name       = mysqli_real_escape_string($conn, $_POST['name']);
+    $department = mysqli_real_escape_string($conn, $_POST['department']);
+    $email      = mysqli_real_escape_string($conn, $_POST['email']);
+    $gender     = mysqli_real_escape_string($conn, $_POST['gender']);
+    $address    = mysqli_real_escape_string($conn, $_POST['address']);
+
+    // Insert into database (emp_id is auto-incremented, so it's excluded)
+    $sql = "INSERT INTO employees (emp_name, emp_department, emp_email, emp_gender, emp_address)
+            VALUES ('$name', '$department', '$email', '$gender', '$address')";
+
+    if (mysqli_query($conn, $sql)) {
+        echo "<script>alert('Employee added successfully!');</script>";
+    } else {
+        echo "<script>alert('Error: " . mysqli_error($conn) . "');</script>";
+    }
+}
+?>
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,10 +34,11 @@
         <header>
             <h1>Employee Registration</h1>
         </header>
-        
+
         <div class="form-container">
-            <form action="#" method="POST">
-                <label for="id">Employee ID</label>
+            <form action="" method="POST">
+                <!-- Removed Employee ID input; emp_id is auto-increment -->
+                 <label for="id">Employee ID</label>
                 <input type="text" name="id" class="textfield" placeholder="ID will be automatically updated" readonly>
                 
                 <label for="name">Full Name</label>
@@ -55,15 +79,11 @@
                 <div class="btn-container">
                     <input type="submit" name="save" value="SAVE" class="btn">
                     <button type="button" class="btn2" onclick="window.location.href='starting.php'">
-                    CANCEL
-                	</button>
+                        CANCEL
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </body>
 </html>
-
-<?php
-    if(isset($_POST['searchdata']))
-?>

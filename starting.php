@@ -26,8 +26,24 @@ if (isset($_GET['logout'])) {
     header("Location: admin_login.php");
     exit();
 }
-?>
 
+// --- Add this block to get live stats ---
+include 'connection.php';
+
+// Get total employees
+$total_employees = 0;
+$res_emp = $conn->query("SELECT COUNT(*) AS cnt FROM employees");
+if ($res_emp && $row = $res_emp->fetch_assoc()) {
+    $total_employees = $row['cnt'];
+}
+
+// Get total departments
+$total_departments = 0;
+$res_dept = $conn->query("SELECT COUNT(*) AS cnt FROM departments");
+if ($res_dept && $row = $res_dept->fetch_assoc()) {
+    $total_departments = $row['cnt'];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,23 +77,26 @@ if (isset($_GET['logout'])) {
                 <p>View and manage all employee information in your organization.</p>
                 <div class="stats">
                     <div class="stat-item">
-                        <div class="stat-value">142</div>
+                        <div class="stat-value"><?php echo $total_employees; ?></div>
                         <div class="stat-label">Total Employees</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-value">8</div>
+                        <div class="stat-value"><?php echo $total_departments; ?></div>
                         <div class="stat-label">Departments</div>
                     </div>
                 </div>
-                <a href="employees.php" class="btn">View Employees</a>
+                <a href="view_employees.php" class="btn">View Employees</a>
             </div>
-            
+
             <div class="card">
-                <h3>Add New Employee</h3>
-                <p>Register new employees and add them to your database.</p>
-                <a href="add_employee.php" class="btn">Add Employee</a>
+                <h3>Add / Edit Employee</h3>
+                <p>Add new employees or update employee information and salary.</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <a href="add_employee.php" class="btn">Add Employee</a>
+                    <a href="edit_employee.php" class="btn btn-secondary">Edit Employee</a>
+                </div>
             </div>
-            
+
             <div class="card">
                 <h3>Reports & Analytics</h3>
                 <p>Generate reports and view analytics about your workforce.</p>
@@ -88,9 +107,6 @@ if (isset($_GET['logout'])) {
         <div class="card">
             <h3>Quick Actions</h3>
             <div class="quick-actions">
-                <a href="attendance.php" class="btn">Attendance</a>
-                <a href="payroll.php" class="btn">Payroll</a>
-                <a href="departments.php" class="btn">Departments</a>
                 <a href="settings.php" class="btn btn-secondary">Settings</a>
                 <a href="?logout=1" class="btn btn-secondary">Logout</a>
             </div>
