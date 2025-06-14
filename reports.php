@@ -168,7 +168,10 @@ $conn->close();
                 legend: { display: false }
             },
             scales: {
-                x: { beginAtZero: true }
+                x: { 
+                    beginAtZero: true,
+                    ticks: { precision: 0 } // Chỉ hiển thị số nguyên
+                }
             }
         }
     });
@@ -207,7 +210,10 @@ $conn->close();
                 legend: { display: false }
             },
             scales: {
-                x: { beginAtZero: true }
+                x: { 
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                }
             }
         }
     });
@@ -244,7 +250,11 @@ $conn->close();
             maintainAspectRatio: false,
             plugins: {},
             scales: {
-                x: { stacked: true, beginAtZero: true },
+                x: { 
+                    stacked: true, 
+                    beginAtZero: true,
+                    ticks: { precision: 0 }
+                },
                 y: { stacked: true }
             }
         }

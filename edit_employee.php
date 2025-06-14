@@ -16,11 +16,12 @@ while ($row = $dept_res->fetch_assoc()) {
 $success = '';
 $error = '';
 $employee = null;
+$is_current_manager = false; // Luôn khởi tạo trước
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $emp_no = intval($_POST['emp_no']);
 
-    // If searching for employee
+    // Nếu tìm kiếm nhân viên
     if (isset($_POST['search'])) {
         // Get employee info
         $stmt = $conn->prepare("SELECT e.emp_no, e.first_name, e.last_name, e.gender, e.birth_date, e.hire_date,
@@ -39,29 +40,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "Employee not found.";
         }
         $stmt->close();
+
+        // Sau khi lấy $employee và $employee['department']
+        $is_current_manager = false;
+        if ($employee && isset($employee['emp_no']) && isset($employee['department'])) {
+            $dept_no = $employee['department'];
+            $emp_no = $employee['emp_no'];
+            $sql = "SELECT 1 FROM dept_manager WHERE dept_no = ? AND emp_no = ? AND (to_date IS NULL OR to_date = '9999-01-01')";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("si", $dept_no, $emp_no);
+            $stmt->execute();
+            $stmt->store_result();
+            $is_current_manager = $stmt->num_rows > 0;
+            $stmt->close();
+        }
     }
-    // If updating employee info (only department, title, salary)
+    // Nếu cập nhật thông tin nhân viên
     elseif (isset($_POST['update'])) {
+        // Khi cập nhật
         $dept_no = $_POST['department'];
         $title = trim($_POST['title']);
         $salary = intval($_POST['salary']);
 
-        // Update dept_emp (set old to_date, insert new)
-        $conn->query("UPDATE dept_emp SET to_date=CURDATE() WHERE emp_no=$emp_no AND (to_date IS NULL OR to_date='9999-01-01')");
+        // Xóa toàn bộ phòng ban cũ
+        $stmt = $conn->prepare("DELETE FROM dept_emp WHERE emp_no = ?");
+        $stmt->bind_param("i", $emp_no);
+        $stmt->execute();
+        $stmt->close();
+
+        // Thêm phòng ban mới
         $stmt = $conn->prepare("INSERT INTO dept_emp (emp_no, dept_no, from_date, to_date) VALUES (?, ?, CURDATE(), '9999-01-01')");
         $stmt->bind_param("is", $emp_no, $dept_no);
         $stmt->execute();
         $stmt->close();
 
-        // Update titles (set old to_date, insert new)
-        $conn->query("UPDATE titles SET to_date=CURDATE() WHERE emp_no=$emp_no AND (to_date IS NULL OR to_date='9999-01-01')");
+        // Xử lý titles và salaries
+        $stmt = $conn->prepare("DELETE FROM titles WHERE emp_no = ?");
+        $stmt->bind_param("i", $emp_no);
+        $stmt->execute();
+        $stmt->close();
+
         $stmt = $conn->prepare("INSERT INTO titles (emp_no, title, from_date, to_date) VALUES (?, ?, CURDATE(), '9999-01-01')");
         $stmt->bind_param("is", $emp_no, $title);
         $stmt->execute();
         $stmt->close();
 
-        // Update salaries (set old to_date, insert new)
-        $conn->query("UPDATE salaries SET to_date=CURDATE() WHERE emp_no=$emp_no AND (to_date IS NULL OR to_date='9999-01-01')");
+        $stmt = $conn->prepare("DELETE FROM salaries WHERE emp_no = ?");
+        $stmt->bind_param("i", $emp_no);
+        $stmt->execute();
+        $stmt->close();
+
+        // Kết thúc lương cũ
+        $stmt = $conn->prepare("UPDATE salaries SET to_date = CURDATE() WHERE emp_no = ? AND to_date = '9999-01-01'");
+        $stmt->bind_param("i", $emp_no);
+        $stmt->execute();
+        $stmt->close();
+
+        // Thêm lương mới
         $stmt = $conn->prepare("INSERT INTO salaries (emp_no, salary, from_date, to_date) VALUES (?, ?, CURDATE(), '9999-01-01')");
         $stmt->bind_param("ii", $emp_no, $salary);
         $stmt->execute();
@@ -71,6 +106,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Reload employee info for display
         $_POST['search'] = true;
     }
+    // Bổ nhiệm làm trưởng phòng
+    elseif (isset($_POST['appoint_manager'])) {
+        $dept_no = $_POST['department'];
+        // Xóa mọi record cũ của nhân viên này ở phòng ban này (nếu có)
+        $stmt = $conn->prepare("DELETE FROM dept_manager WHERE dept_no = ? AND emp_no = ?");
+        $stmt->bind_param("si", $dept_no, $emp_no);
+        $stmt->execute();
+        $stmt->close();
+
+        // Kết thúc nhiệm kỳ manager cũ (nếu có)
+        $conn->query("UPDATE dept_manager SET to_date = CURDATE() WHERE dept_no = '$dept_no' AND (to_date IS NULL OR to_date = '9999-01-01')");
+
+        // Thêm trưởng phòng mới
+        $stmt = $conn->prepare("INSERT INTO dept_manager (dept_no, emp_no, from_date, to_date) VALUES (?, ?, CURDATE(), '9999-01-01')");
+        $stmt->bind_param("si", $dept_no, $emp_no);
+        if ($stmt->execute()) {
+            $success = "Appointed as manager successfully!";
+        } else {
+            $error = "Failed to appoint as manager.";
+        }
+        $stmt->close();
+    }
+    // Bãi nhiệm trưởng phòng
+    elseif (isset($_POST['dismiss_manager'])) {
+        $dept_no = $_POST['dept_no'];
+        $emp_no = $_POST['emp_no'];
+        $stmt = $conn->prepare("DELETE FROM dept_manager WHERE dept_no = ? AND emp_no = ? AND to_date = '9999-01-01'");
+        $stmt->bind_param("si", $dept_no, $emp_no);
+        if ($stmt->execute() && $stmt->affected_rows > 0) {
+            $success = "Dismissed manager successfully!";
+        } else {
+            $error = "Failed to dismiss manager or employee is not current manager.";
+        }
+        $stmt->close();
+        // Reload employee info and manager status here
+    }
+
+    // Sau mọi thao tác, luôn lấy lại thông tin employee và trạng thái manager
+    // (giả sử $emp_no và $dept_no đã có)
+    $stmt = $conn->prepare("
+        SELECT e.*, 
+               de.dept_no, 
+               t.title, 
+               s.salary
+        FROM employees e
+        LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND (de.to_date = '9999-01-01')
+        LEFT JOIN titles t ON e.emp_no = t.emp_no AND (t.to_date = '9999-01-01')
+        LEFT JOIN salaries s ON e.emp_no = s.emp_no AND (s.to_date = '9999-01-01')
+        WHERE e.emp_no = ?
+    ");
+    $stmt->bind_param("i", $emp_no);
+    $stmt->execute();
+    $employee = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    $is_current_manager = false;
+    if ($employee && isset($employee['emp_no']) && isset($employee['dept_no']) && $employee['dept_no']) {
+        $dept_no = $employee['dept_no'];
+        $emp_no = $employee['emp_no'];
+        $sql = "SELECT 1 FROM dept_manager WHERE dept_no = ? AND emp_no = ? AND (to_date IS NULL OR to_date = '9999-01-01')";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("si", $dept_no, $emp_no);
+        $stmt->execute();
+        $stmt->store_result();
+        $is_current_manager = $stmt->num_rows > 0;
+        $stmt->close();
+    }
+}
+if ($employee) {
+    if (!isset($employee['dept_no'])) $employee['dept_no'] = '';
+    if (!isset($employee['title'])) $employee['title'] = '';
+    if (!isset($employee['salary'])) $employee['salary'] = '';
 }
 ?>
 <!DOCTYPE html>
@@ -113,6 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php if ($employee): ?>
             <form method="post">
                 <input type="hidden" name="emp_no" value="<?php echo htmlspecialchars($employee['emp_no']); ?>">
+                <input type="hidden" name="dept_no" value="<?php echo htmlspecialchars($employee['dept_no']); ?>">
                 <div class="form-group">
                     <label>First Name</label>
                     <input type="text" value="<?php echo htmlspecialchars($employee['first_name']); ?>" readonly class="readonly-field">
@@ -137,7 +245,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="department">Department</label>
                     <select name="department" id="department" required>
                         <?php foreach ($departments as $dept_no => $dept_name): ?>
-                            <option value="<?php echo $dept_no; ?>" <?php if ($employee['dept_no'] == $dept_no) echo 'selected'; ?>>
+                            <option value="<?php echo $dept_no; ?>"
+                                <?php if (isset($employee['dept_no']) && $employee['dept_no'] == $dept_no) echo 'selected'; ?>>
                                 <?php echo htmlspecialchars($dept_name); ?>
                             </option>
                         <?php endforeach; ?>
@@ -145,14 +254,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <div class="form-group">
                     <label for="title">Title</label>
-                    <input type="text" name="title" id="title" value="<?php echo htmlspecialchars($employee['title']); ?>" required>
+                    <input type="text" name="title" id="title"
+                        value="<?php echo isset($employee['title']) ? htmlspecialchars($employee['title']) : ''; ?>" required>
                 </div>
                 <div class="form-group">
                     <label for="salary">Salary (VNĐ)</label>
-                    <input type="number" name="salary" id="salary" value="<?php echo htmlspecialchars($employee['salary']); ?>" required>
+                    <input type="number" name="salary" id="salary"
+                        value="<?php echo isset($employee['salary']) ? htmlspecialchars($employee['salary']) : ''; ?>" required>
                 </div>
                 <div class="btn-container">
                     <button type="submit" name="update" class="btn">Update Employee</button>
+                    <?php if ($is_current_manager): ?>
+                        <button type="submit" name="dismiss_manager" class="btn btn-danger"
+                            onclick="return confirm('Are you sure you want to dismiss this manager?');">
+                            Dismiss as Manager
+                        </button>
+                    <?php else: ?>
+                        <button type="submit" name="appoint_manager" class="btn btn-secondary"
+                            onclick="return confirm('Appoint this employee as manager for the selected department?');">
+                            Appoint as Manager
+                        </button>
+                    <?php endif; ?>
                     <a href="starting.php" class="btn btn-secondary">Back</a>
                 </div>
             </form>

@@ -1,4 +1,3 @@
-
 <?php
 session_start();
 if (!isset($_SESSION['employee_logged_in']) || !isset($_SESSION['emp_no'])) {
@@ -11,6 +10,22 @@ include 'connection.php';
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $search_by = isset($_GET['search_by']) ? $_GET['search_by'] : 'name';
 
+// Handle sort
+$sort_by = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'emp_no';
+$order = isset($_GET['order']) && strtolower($_GET['order']) === 'desc' ? 'DESC' : 'ASC';
+
+// Allowed columns for sorting
+$allowed_sort = [
+    'emp_no' => 'e.emp_no',
+    'name' => 'e.first_name',
+    'dept_name' => 'd.dept_name',
+    'email' => 'e.email',
+    'gender' => 'e.gender',
+    'birth_date' => 'e.birth_date',
+    'hire_date' => 'e.hire_date'
+];
+$sort_column = isset($allowed_sort[$sort_by]) ? $allowed_sort[$sort_by] : 'e.emp_no';
+
 // Build WHERE clause for search
 $where = '';
 $params = [];
@@ -18,19 +33,26 @@ if ($search !== '') {
     if ($search_by === 'id') {
         $where = "WHERE e.emp_no = ?";
         $params[] = $search;
+    } elseif ($search_by === 'email') {
+        $where = "WHERE e.email LIKE ?";
+        $params[] = '%' . $search . '%';
+    } elseif ($search_by === 'department') {
+        $where = "WHERE d.dept_name LIKE ?";
+        $params[] = '%' . $search . '%';
     } else { // name
         $where = "WHERE CONCAT(e.first_name, ' ', e.last_name) LIKE ?";
         $params[] = '%' . $search . '%';
     }
 }
 
-// Prepare SQL with search
-$sql = "SELECT e.emp_no, e.first_name, e.last_name, e.gender, e.birth_date, e.hire_date, d.dept_name
+// Prepare SQL with search and sort
+$sql = "SELECT e.emp_no, e.first_name, e.last_name, e.email, e.gender, e.birth_date, e.hire_date, d.dept_name,
+        (SELECT COUNT(*) FROM dept_manager dm WHERE dm.emp_no = e.emp_no AND dm.to_date = '9999-01-01') AS is_manager
         FROM employees e
-        LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND (de.to_date IS NULL OR de.to_date = '9999-01-01')
+        LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
         LEFT JOIN departments d ON de.dept_no = d.dept_no
         $where
-        ORDER BY e.emp_no ASC";
+        ORDER BY $sort_column $order";
 
 $stmt = $conn->prepare($sql);
 if ($params) {
@@ -63,6 +85,7 @@ $result = $stmt->get_result();
         th {
             background-color: #3498db;
             color: white;
+            cursor: pointer;
         }
         tr:hover {
             background-color: #f1f1f1;
@@ -107,6 +130,8 @@ $result = $stmt->get_result();
         <select name="search_by">
             <option value="name" <?php if($search_by=='name') echo 'selected'; ?>>Name</option>
             <option value="id" <?php if($search_by=='id') echo 'selected'; ?>>ID</option>
+            <option value="email" <?php if($search_by=='email') echo 'selected'; ?>>Email</option>
+            <option value="department" <?php if($search_by=='department') echo 'selected'; ?>>Department</option>
         </select>
         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search...">
         <button type="submit">Search</button>
@@ -114,12 +139,32 @@ $result = $stmt->get_result();
     </form>
     <table>
         <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Department</th>
-            <th>Gender</th>
-            <th>Birth Date</th>
-            <th>Hire Date</th>
+            <?php
+            // Helper for sort links
+            function sort_link($label, $col, $current_sort, $current_order, $search, $search_by) {
+                $next_order = ($current_sort === $col && $current_order === 'ASC') ? 'desc' : 'asc';
+                $arrow = '';
+                if ($current_sort === $col) {
+                    $arrow = $current_order === 'ASC' ? ' ▲' : ' ▼';
+                }
+                $params = [
+                    'sort_by' => $col,
+                    'order' => $next_order,
+                    'search' => $search,
+                    'search_by' => $search_by
+                ];
+                $url = '?' . http_build_query($params);
+                return "<a href=\"$url\" style=\"color:white;text-decoration:none;\">$label$arrow</a>";
+            }
+            ?>
+            <th><?php echo sort_link('ID', 'emp_no', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Name', 'name', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Email', 'email', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Department', 'dept_name', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Gender', 'gender', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Birth Date', 'birth_date', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Hire Date', 'hire_date', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th>Is Manager</th>
         </tr>
         <?php
         if ($result && $result->num_rows > 0):
@@ -128,22 +173,24 @@ $result = $stmt->get_result();
         <tr>
             <td><?php echo $row['emp_no']; ?></td>
             <td><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?></td>
+            <td><?php echo htmlspecialchars($row['email']); ?></td>
             <td><?php echo htmlspecialchars($row['dept_name'] ?? ''); ?></td>
             <td><?php echo htmlspecialchars($row['gender']); ?></td>
             <td><?php echo htmlspecialchars($row['birth_date']); ?></td>
             <td><?php echo htmlspecialchars($row['hire_date']); ?></td>
+            <td><?php echo $row['is_manager'] ? 'Yes' : 'No'; ?></td>
         </tr>
         <?php
             endwhile;
         else:
         ?>
         <tr>
-            <td colspan="6">No employees found.</td>
+            <td colspan="8">No employees found.</td>
         </tr>
         <?php endif; ?>
     </table>
     <div style="margin-top: 20px;">
-        <a class="back-btn" href="employee_dashboard.php">Back</a>
+        <a class="back-btn" href="employee_dashboard.php">Back to Dashboard</a>
     </div>
 </body>
 </html>

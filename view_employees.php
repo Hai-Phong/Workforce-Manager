@@ -14,6 +14,7 @@ $allowed_sort = [
     'emp_no' => 'e.emp_no',
     'name' => 'e.first_name',
     'dept_name' => 'd.dept_name',
+    'email' => 'e.email',
     'gender' => 'e.gender',
     'birth_date' => 'e.birth_date',
     'hire_date' => 'e.hire_date'
@@ -27,6 +28,12 @@ if ($search !== '') {
     if ($search_by === 'id') {
         $where = "WHERE e.emp_no = ?";
         $params[] = $search;
+    } elseif ($search_by === 'email') {
+        $where = "WHERE e.email LIKE ?";
+        $params[] = '%' . $search . '%';
+    } elseif ($search_by === 'department') {
+        $where = "WHERE d.dept_name LIKE ?";
+        $params[] = '%' . $search . '%';
     } else { // name
         $where = "WHERE CONCAT(e.first_name, ' ', e.last_name) LIKE ?";
         $params[] = '%' . $search . '%';
@@ -34,9 +41,10 @@ if ($search !== '') {
 }
 
 // Prepare SQL with search and sort
-$sql = "SELECT e.emp_no, e.first_name, e.last_name, e.gender, e.birth_date, e.hire_date, d.dept_name
+$sql = "SELECT e.emp_no, e.first_name, e.last_name, e.email, e.gender, e.birth_date, e.hire_date, d.dept_name,
+        (SELECT COUNT(*) FROM dept_manager dm WHERE dm.emp_no = e.emp_no AND dm.to_date = '9999-01-01') AS is_manager
         FROM employees e
-        LEFT JOIN dept_emp de ON e.emp_no = de.emp_no
+        LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01'
         LEFT JOIN departments d ON de.dept_no = d.dept_no
         $where
         ORDER BY $sort_column $order";
@@ -119,6 +127,8 @@ $result = $stmt->get_result();
         <select name="search_by">
             <option value="name" <?php if($search_by=='name') echo 'selected'; ?>>Name</option>
             <option value="id" <?php if($search_by=='id') echo 'selected'; ?>>ID</option>
+            <option value="email" <?php if($search_by=='email') echo 'selected'; ?>>Email</option>
+            <option value="department" <?php if($search_by=='department') echo 'selected'; ?>>Department</option>
         </select>
         <input type="text" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search...">
         <button type="submit">Search</button>
@@ -147,10 +157,13 @@ $result = $stmt->get_result();
             ?>
             <th><?php echo sort_link('ID', 'emp_no', $sort_by, strtoupper($order), $search, $search_by); ?></th>
             <th><?php echo sort_link('Name', 'name', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th><?php echo sort_link('Email', 'email', $sort_by, strtoupper($order), $search, $search_by); ?></th>
             <th><?php echo sort_link('Department', 'dept_name', $sort_by, strtoupper($order), $search, $search_by); ?></th>
             <th><?php echo sort_link('Gender', 'gender', $sort_by, strtoupper($order), $search, $search_by); ?></th>
             <th><?php echo sort_link('Birth Date', 'birth_date', $sort_by, strtoupper($order), $search, $search_by); ?></th>
             <th><?php echo sort_link('Hire Date', 'hire_date', $sort_by, strtoupper($order), $search, $search_by); ?></th>
+            <th>Is Manager</th>
+            <th>Update</th>
         </tr>
         <?php
         if ($result && $result->num_rows > 0):
@@ -159,17 +172,22 @@ $result = $stmt->get_result();
         <tr>
             <td><?php echo $row['emp_no']; ?></td>
             <td><?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?></td>
+            <td><?php echo htmlspecialchars($row['email']); ?></td>
             <td><?php echo htmlspecialchars($row['dept_name'] ?? ''); ?></td>
             <td><?php echo htmlspecialchars($row['gender']); ?></td>
             <td><?php echo htmlspecialchars($row['birth_date']); ?></td>
             <td><?php echo htmlspecialchars($row['hire_date']); ?></td>
+            <td><?php echo ($row['is_manager'] ? 'Yes' : 'No'); ?></td>
+            <td>
+                <a href="edit_employee.php?emp_no=<?php echo $row['emp_no']; ?>" class="btn btn-secondary" style="padding:4px 10px;">Edit</a>
+            </td>
         </tr>
         <?php
             endwhile;
         else:
         ?>
         <tr>
-            <td colspan="6">No employees found.</td>
+            <td colspan="9">No employees found.</td>
         </tr>
         <?php endif; ?>
     </table>

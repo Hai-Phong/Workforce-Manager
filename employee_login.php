@@ -30,8 +30,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($result->num_rows === 1) {
             $user = $result->fetch_assoc();
 
-            // For production, use password_verify(). Here, plain text for demo.
-            if ($password === $user['password']) {
+            // So sánh đúng chuẩn với hash
+            if (password_verify($password, $user['password'])) {
                 $_SESSION['employee_logged_in'] = true;
                 $_SESSION['emp_no'] = $user['emp_no'];
                 $_SESSION['employee_name'] = $user['first_name'] . ' ' . $user['last_name'];
